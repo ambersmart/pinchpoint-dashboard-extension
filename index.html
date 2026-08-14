@@ -99,6 +99,7 @@
 
   <div class="filters">
     <div class="field"><label for="fCampus">Campus</label><select id="fCampus"></select></div>
+    <div class="field" id="wkndField"><label for="fWknd">Weekend</label><select id="fWknd"></select></div>
     <div class="spacer"></div>
     <div class="field"><label>&nbsp;</label>
       <div class="seg" role="tablist">
@@ -150,28 +151,41 @@ const RED_AT=90;      // at/above this % => Red
 function lightFor(pct){ if(pct==null||isNaN(pct))return null; if(pct>=RED_AT)return 'Red'; if(pct>=YELLOW_AT)return 'Yellow'; return 'Green'; }
 
 const SAMPLE={"campuses":{
-  "North Campus":{"awaLeaf":{"WC":2400,"EC":180,"Elem":220,"HSM":70,"MSM":80},"weekendsInWindow":50,"trend":[2200,2350,2100,2400,2500,2300,2450,2600,2380,2420,2550,2700,2260,2410,2330,2480,2520,2360,2440,2610],"stoplightWeekend":"2026-01-11","services":[
-    {"area":"WC","svc":"Sunday 9:00 AM","dow":"Sunday","att":1100,"soft":1500,"firm":1500},
-    {"area":"WC","svc":"Sunday 11:00 AM","dow":"Sunday","att":1300,"soft":1500,"firm":1500},
-    {"area":"EC","svc":"Sunday 9:00 AM","dow":"Sunday","att":90,"soft":150,"firm":180},
-    {"area":"Elem","svc":"Sunday 9:00 AM","dow":"Sunday","att":120,"soft":160,"firm":200},
-    {"area":"HSM","svc":"HSM","dow":"Sunday","att":70,"soft":null,"firm":null},
-    {"area":"MSM","svc":"MSM","dow":"Sunday","att":80,"soft":null,"firm":null}]},
-  "South Campus":{"awaLeaf":{"WC":1600,"EC":120,"Elem":150,"HSM":40,"MSM":50},"weekendsInWindow":50,"trend":[1500,1550,1480,1600,1620,1580,1650,1700,1600,1640,1680,1720,1560,1590,1610,1660,1630,1600,1670,1710],"stoplightWeekend":"2026-01-11","services":[
-    {"area":"WC","svc":"Sunday 10:00 AM","dow":"Sunday","att":900,"soft":1000,"firm":1000},
-    {"area":"EC","svc":"Sunday 10:00 AM","dow":"Sunday","att":70,"soft":120,"firm":140},
-    {"area":"Elem","svc":"Sunday 10:00 AM","dow":"Sunday","att":95,"soft":140,"firm":160}]},
-  "West Campus":{"awaLeaf":{"WC":1100,"EC":90,"Elem":110,"HSM":30,"MSM":35},"weekendsInWindow":49,"trend":[1000,1050,980,1100,1120,1080,1150,1200,1090,1130,1160,1210,1020,1070,1040,1140,1110,1060,1150,1190],"stoplightWeekend":"2026-01-11","services":[
-    {"area":"WC","svc":"Sunday 9:30 AM","dow":"Sunday","att":700,"soft":900,"firm":900},
-    {"area":"EC","svc":"Sunday 9:30 AM","dow":"Sunday","att":55,"soft":100,"firm":120},
-    {"area":"Elem","svc":"Sunday 9:30 AM","dow":"Sunday","att":80,"soft":130,"firm":150}]}
+  "North Campus":{"awaLeaf":{"WC":2400,"EC":180,"Elem":220,"HSM":70,"MSM":80},"weekendsInWindow":50,"trend":[2200,2350,2100,2400,2500,2300,2450,2600,2380,2420,2550,2700,2260,2410,2330,2480,2520,2360,2440,2610],"weekends":[
+    {"label":"2026-01-11","services":[
+      {"area":"WC","svc":"Sunday 9:00 AM","att":1100,"soft":1500,"firm":1500},
+      {"area":"WC","svc":"Sunday 11:00 AM","att":1300,"soft":1500,"firm":1500},
+      {"area":"EC","svc":"Sunday 9:00 AM","att":90,"soft":150,"firm":180},
+      {"area":"Elem","svc":"Sunday 9:00 AM","att":120,"soft":160,"firm":200},
+      {"area":"HSM","svc":"HSM","att":70,"soft":null,"firm":null},
+      {"area":"MSM","svc":"MSM","att":80,"soft":null,"firm":null}]},
+    {"label":"2026-01-04","services":[
+      {"area":"WC","svc":"Sunday 9:00 AM","att":1050,"soft":1500,"firm":1500},
+      {"area":"WC","svc":"Sunday 11:00 AM","att":1240,"soft":1500,"firm":1500},
+      {"area":"EC","svc":"Sunday 9:00 AM","att":84,"soft":150,"firm":180},
+      {"area":"Elem","svc":"Sunday 9:00 AM","att":110,"soft":160,"firm":200},
+      {"area":"HSM","svc":"HSM","att":66,"soft":null,"firm":null},
+      {"area":"MSM","svc":"MSM","att":75,"soft":null,"firm":null}]}
+  ]},
+  "South Campus":{"awaLeaf":{"WC":1600,"EC":120,"Elem":150,"HSM":40,"MSM":50},"weekendsInWindow":50,"trend":[1500,1550,1480,1600,1620,1580,1650,1700,1600,1640,1680,1720,1560,1590,1610,1660,1630,1600,1670,1710],"weekends":[
+    {"label":"2026-01-11","services":[
+      {"area":"WC","svc":"Sunday 10:00 AM","att":900,"soft":1000,"firm":1000},
+      {"area":"EC","svc":"Sunday 10:00 AM","att":70,"soft":120,"firm":140},
+      {"area":"Elem","svc":"Sunday 10:00 AM","att":95,"soft":140,"firm":160}]}
+  ]},
+  "West Campus":{"awaLeaf":{"WC":1100,"EC":90,"Elem":110,"HSM":30,"MSM":35},"weekendsInWindow":49,"trend":[1000,1050,980,1100,1120,1080,1150,1200,1090,1130,1160,1210,1020,1070,1040,1140,1110,1060,1150,1190],"weekends":[
+    {"label":"2026-01-11","services":[
+      {"area":"WC","svc":"Sunday 9:30 AM","att":700,"soft":900,"firm":900},
+      {"area":"EC","svc":"Sunday 9:30 AM","att":55,"soft":100,"firm":120},
+      {"area":"Elem","svc":"Sunday 9:30 AM","att":80,"soft":130,"firm":150}]}
+  ]}
 },"anchor":"2026-01-18"};
 
 // Fill in each sample service's pct + stoplight color from the same rule the live data uses.
-Object.values(SAMPLE.campuses).forEach(cd=>cd.services.forEach(s=>{
+Object.values(SAMPLE.campuses).forEach(cd=>(cd.weekends||[]).forEach(w=>w.services.forEach(s=>{
   s.pct = s.soft ? +(s.att/s.soft*100).toFixed(1) : null;
   s.light = lightFor(s.pct);
-}));
+})));
 
 let DATA=SAMPLE;
 
@@ -181,16 +195,10 @@ const HIER=[
   {cat:'Students',label:'Students',sub:'',leaves:[{k:'HSM',label:'High School',sub:'HSM'},{k:'MSM',label:'Middle School',sub:'MSM'}]},
 ];
 const fmt=n=>Math.round(n).toLocaleString('en-US');
-const state={campus:Object.keys(DATA.campuses)[0],dow:'all',view:'awa'};
+const state={campus:Object.keys(DATA.campuses)[0],view:'awa',weekend:null};
 
 function sev(l){return l==='Red'?3:l==='Yellow'?2:l==='Green'?1:0}
 function colorOf(l){return l==='Red'?'red':l==='Yellow'?'yellow':l==='Green'?'green':'unknown'}
-function svcPass(s){
-  if(state.dow==='all')return true;
-  const d=(s.dow||'').toLowerCase();
-  if(d) return d===state.dow.toLowerCase();
-  return (s.svc||'').toLowerCase().includes(state.dow.toLowerCase());
-}
 
 function spark(vals,w,h,accent){
   if(!vals.length)return '';
@@ -225,12 +233,21 @@ function rowAwa(kind,label,sub,val,pct,accent){
   return r;
 }
 
+// All weekends for a campus, most-recent first (works for live data and the sample).
+function currentWeekends(cd){
+  const list = (cd.weekends && cd.weekends.length)
+    ? cd.weekends.slice()
+    : [{label: cd.stoplightWeekend||'—', services: cd.services||[]}];
+  return list.sort((a,b)=>((b.t!=null?b.t:Date.parse(b.label)||0)-(a.t!=null?a.t:Date.parse(a.label)||0)));
+}
 function renderWknd(){
   const cd=DATA.campuses[state.campus];
-  document.getElementById('wkndDate').textContent=cd.stoplightWeekend||'—';
+  const weekends=currentWeekends(cd);
+  const wk = weekends.find(w=>w.label===state.weekend) || weekends[0] || {label:'—',services:[]};
+  document.getElementById('wkndDate').textContent=wk.label||'—';
   document.getElementById('wkndCampus').textContent=state.campus;
   const byArea={}; ['WC','EC','Elem','HSM','MSM'].forEach(a=>byArea[a]=[]);
-  cd.services.filter(svcPass).forEach(s=>{ if(byArea[s.area]) byArea[s.area].push(s); });
+  (wk.services||[]).forEach(s=>{ if(byArea[s.area]) byArea[s.area].push(s); });
   const areaAtt={}; let total=0;
   for(const a in byArea){ areaAtt[a]=byArea[a].reduce((x,s)=>x+s.att,0); total+=areaAtt[a]; }
   const worst=svcs=>{ let m=-1,any=false; svcs.forEach(s=>{ if(s.light){any=true;m=Math.max(m,sev(s.light));} }); return any?['unknown','green','yellow','red'][m]:'unknown'; };
@@ -279,13 +296,27 @@ function initFilters(){
   keys.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;c.appendChild(o);});
   c.value=state.campus;
 }
-document.getElementById('fCampus').addEventListener('change',e=>{state.campus=e.target.value;render();});
+// The Weekend selector shows only on the Weekend Stoplight view, and lists the
+// weekends available for the chosen campus (most recent first).
+function updateWeekendFilter(){
+  const fieldEl=document.getElementById('wkndField');
+  const show = state.view==='wknd';
+  fieldEl.style.display = show ? '' : 'none';
+  if(!show) return;
+  const weekends=currentWeekends(DATA.campuses[state.campus]);
+  if(!weekends.some(w=>w.label===state.weekend)) state.weekend = weekends[0] ? weekends[0].label : null;
+  const sel=document.getElementById('fWknd'); sel.innerHTML='';
+  weekends.forEach(w=>{const o=document.createElement('option');o.value=w.label;o.textContent=w.label;sel.appendChild(o);});
+  sel.value=state.weekend;
+}
+document.getElementById('fCampus').addEventListener('change',e=>{state.campus=e.target.value;state.weekend=null;updateWeekendFilter();render();});
+document.getElementById('fWknd').addEventListener('change',e=>{state.weekend=e.target.value;render();});
 function setView(v){state.view=v;
   document.getElementById('tabAwa').setAttribute('aria-selected',v==='awa');
   document.getElementById('tabWknd').setAttribute('aria-selected',v==='wknd');
   document.getElementById('viewAwa').classList.toggle('hidden',v!=='awa');
   document.getElementById('viewWknd').classList.toggle('hidden',v!=='wknd');
-  render();}
+  updateWeekendFilter(); render();}
 document.getElementById('tabAwa').addEventListener('click',()=>setView('awa'));
 document.getElementById('tabWknd').addEventListener('click',()=>setView('wknd'));
 document.getElementById('themeBtn').addEventListener('click',()=>{const r=document.documentElement;r.setAttribute('data-theme',r.getAttribute('data-theme')==='dark'?'light':'dark');render();});
@@ -385,24 +416,31 @@ async function loadFromTableau(){
   });
   for(const c in trend){ trend[c].sort((x,y)=>x.t-y.t); ensure(c).trend=trend[c].map(p=>p.v); }
 
-  // Sheet 3 — Service Stoplight
-  const wkTime={};
+  // Sheet 3 — Service Stoplight (grouped by weekend so the selector can page through them)
+  const wkMap={}; // campus -> { weekendLabel -> {t,label,services:[]} }
   (await readRecords(wsSvc)).forEach(rec=>{
-    const c=cellStr(field(rec,['Campus'])); if(!c)return; const cd=ensure(c);
+    const c=cellStr(field(rec,['Campus'])); if(!c)return; ensure(c);
     const soft=cellNum(field(rec,['Soft Cap','Soft']));
     const att=cellNum(field(rec,['Attendance','Att']));
     const svc=cellStr(field(rec,['Service']));
     const firm=cellNum(field(rec,['Firm Cap','Firm']));
     const pct=soft>0?+(att/soft*100).toFixed(1):null;
-    // Day of week: prefer the day named in the service, else a Day-of-Week field (name or date).
-    const dow=weekdayFrom(svc)||weekdayFrom(cellStr(field(rec,['Day of Week','Day'])));
-    cd.services.push({
-      area:normalizeArea(cellStr(field(rec,['Ministry Area','Area']))), svc:svc, dow:dow,
+    const wkCell=field(rec,['Weekend Date','Weekend','Date']);
+    const label=wkCell!==undefined?cellStr(wkCell):'—';
+    const t=wkCell!==undefined?cellTime(wkCell):0;
+    const m=(wkMap[c]=wkMap[c]||{});
+    const w=(m[label]=m[label]||{t:t,label:label,services:[]});
+    w.services.push({
+      area:normalizeArea(cellStr(field(rec,['Ministry Area','Area']))), svc:svc,
       att:att, soft:soft>0?soft:null, firm:firm>0?firm:null, pct:pct, light:lightFor(pct)
     });
-    const wkCell=field(rec,['Weekend Date','Weekend','Date']);
-    if(wkCell!==undefined){ const t=cellTime(wkCell); if(t>=(wkTime[c]||-1)){ wkTime[c]=t; cd.stoplightWeekend=cellStr(wkCell); } }
   });
+  for(const c in wkMap){
+    const cd=ensure(c);
+    cd.weekends=Object.values(wkMap[c]).sort((a,b)=>b.t-a.t);
+    cd.stoplightWeekend=cd.weekends[0]?cd.weekends[0].label:'';
+    cd.services=cd.weekends[0]?cd.weekends[0].services:[];
+  }
 
   if(!Object.keys(out.campuses).length) throw new Error('No rows returned from the worksheets.');
   DATA=out;
@@ -412,14 +450,14 @@ async function loadFromTableau(){
 }
 
 let refreshing=false;
-async function refresh(){ if(refreshing)return; refreshing=true; try{ await loadFromTableau(); initFilters(); }catch(e){} refreshing=false; render(); }
+async function refresh(){ if(refreshing)return; refreshing=true; try{ await loadFromTableau(); initFilters(); updateWeekendFilter(); }catch(e){} refreshing=false; render(); }
 
 async function boot(){
   if(window.tableau && tableau.extensions && tableau.extensions.initializeAsync){
     try{ await tableau.extensions.initializeAsync(); await loadFromTableau(); }
     catch(e){ console.warn('Pinchpoint: using sample data —', e && e.message); }
   }
-  initFilters(); render();
+  initFilters(); updateWeekendFilter(); render();
 }
 boot();
 </script>
