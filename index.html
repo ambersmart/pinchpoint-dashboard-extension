@@ -149,6 +149,15 @@
 const YELLOW_AT=75;   // at/above this % => Yellow
 const RED_AT=90;      // at/above this % => Red
 function lightFor(pct){ if(pct==null||isNaN(pct))return null; if(pct>=RED_AT)return 'Red'; if(pct>=YELLOW_AT)return 'Yellow'; return 'Green'; }
+// Normalize a stoplight value from the data (e.g. "Green", "amber", "RED") to Green/Yellow/Red. null if unrecognized.
+function normalizeLight(v){
+  const s=String(v==null?'':v).toLowerCase();
+  if(!s.trim())return null;
+  if(s.includes('red'))return 'Red';
+  if(s.includes('yellow')||s.includes('amber'))return 'Yellow';
+  if(s.includes('green'))return 'Green';
+  return null;
+}
 
 const SAMPLE={"campuses":{
   "North Campus":{"awaLeaf":{"WC":2400,"EC":180,"Elem":220,"HSM":70,"MSM":80},"weekendsInWindow":50,"trend":[2200,2350,2100,2400,2500,2300,2450,2600,2380,2420,2550,2700,2260,2410,2330,2480,2520,2360,2440,2610],"weekends":[
@@ -181,10 +190,10 @@ const SAMPLE={"campuses":{
   ]}
 },"anchor":"2026-01-18"};
 
-// Fill in each sample service's pct + stoplight color from the same rule the live data uses.
+// Fill in each sample service's pct + stoplight color. Use a provided light if present, else the % calc.
 Object.values(SAMPLE.campuses).forEach(cd=>(cd.weekends||[]).forEach(w=>w.services.forEach(s=>{
   s.pct = s.soft ? +(s.att/s.soft*100).toFixed(1) : null;
-  s.light = lightFor(s.pct);
+  s.light = normalizeLight(s.light) || lightFor(s.pct);
 })));
 
 let DATA=SAMPLE;
@@ -355,8 +364,11 @@ document.getElementById('themeBtn').addEventListener('click',()=>{const r=docume
  *
  *   Sheet "AWA by Area"     -> Campus, Ministry Area, AWA, Weekends in Window
  *   Sheet "Weekly Trend"    -> Campus, Weekend (date), Total Attendance
- *   Sheet "Service Stoplight"-> Campus, Ministry Area, Service, Day of Week,
- *                               Attendance, Soft Cap, Firm Cap, Weekend Date
+ *   Sheet "Service Stoplight"-> Campus, Ministry Area, Service, Attendance,
+ *                               Soft Cap, Firm Cap, Weekend Date, Stoplight
+ *
+ * The Stoplight color comes from the data's own field (Red/Yellow/Green) when
+ * present; only if that field is missing do we fall back to the % calc.
  *
  * Field names are matched loosely (case/spacing-insensitive), so small
  * naming differences still work. Ministry Area accepts codes
@@ -458,11 +470,13 @@ async function loadFromTableau(){
     const wkCell=field(rec,['Weekend Date','Weekend','Date']);
     const label=wkCell!==undefined?cellStr(wkCell):'—';
     const t=wkCell!==undefined?cellTime(wkCell):0;
+    // Prefer the data's own stoplight field; fall back to the % calc only if it's absent.
+    const light=normalizeLight(cellStr(field(rec,['Stoplight','Light','Capacity Status','Status','Color'])))||lightFor(pct);
     const m=(wkMap[c]=wkMap[c]||{});
     const w=(m[label]=m[label]||{t:t,label:label,services:[]});
     w.services.push({
       area:normalizeArea(cellStr(field(rec,['Ministry Area','Area']))), svc:svc,
-      att:att, soft:soft>0?soft:null, firm:firm>0?firm:null, pct:pct, light:lightFor(pct)
+      att:att, soft:soft>0?soft:null, firm:firm>0?firm:null, pct:pct, light:light
     });
   });
   for(const c in wkMap){
