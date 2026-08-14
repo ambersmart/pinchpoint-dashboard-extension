@@ -320,7 +320,7 @@ function render(){ state.view==='awa'?renderAwa():renderWknd(); }
 
 function initFilters(){
   const c=document.getElementById('fCampus'); c.innerHTML='';
-  const keys=Object.keys(DATA.campuses);
+  const keys=Object.keys(DATA.campuses).sort((a,b)=>a.localeCompare(b));
   if(!keys.includes(state.campus)) state.campus=keys[0];
   keys.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;c.appendChild(o);});
   c.value=state.campus;
