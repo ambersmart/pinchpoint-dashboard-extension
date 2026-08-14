@@ -93,7 +93,6 @@
       <p>Average Weekly Attendance vs. room capacity</p>
     </div>
     <div style="display:flex;align-items:center">
-      <span class="badge" id="statusBadge">Sample data</span>
       <button class="theme-btn" id="themeBtn" type="button">&#9680; Theme</button>
     </div>
   </header>
@@ -320,20 +319,52 @@ const AREA_MAP={worshipcenter:'WC',wc:'WC',earlychildhood:'EC',ec:'EC',elementar
 const norm=s=>String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]/g,'');
 function normalizeArea(v){ const n=norm(v); return AREA_MAP[n]||String(v||'').trim(); }
 
-function colIndex(map,cands){
-  for(const cnd of cands){ const k=norm(cnd); if(k in map) return map[k]; }
-  for(const cnd of cands){ const k=norm(cnd); for(const key in map){ if(key.includes(k)) return map[key]; } }
-  return -1;
+// Figure out a weekday name from any text (a service name like "Sunday 9:00 AM",
+// a plain "Sunday", or even a date). Returns '' if nothing weekday-like is found.
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function weekdayFrom(v){
+  if(v==null||v==='')return '';
+  const s=String(v).toLowerCase();
+  for(const d of DAYS){ if(s.includes(d.toLowerCase()))return d; }
+  const t=new Date(v).getTime();
+  if(!isNaN(t))return DAYS[new Date(v).getDay()];
+  return '';
 }
+
 function cellNum(cell){ if(!cell)return 0; let v=cell.nativeValue; if(v==null)v=cell.value; let n=Number(v);
   if(isNaN(n)) n=Number(String(cell.formattedValue||'').replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; }
 function cellStr(cell){ if(!cell)return ''; const v=(cell.formattedValue!=null&&cell.formattedValue!=='')?cell.formattedValue:(cell.value!=null?cell.value:''); return String(v).trim(); }
 function cellTime(cell){ if(!cell)return 0; const v=cell.nativeValue!=null?cell.nativeValue:cell.value; const t=new Date(v).getTime(); return isNaN(t)?0:t; }
 
-async function readSheet(ws){
+// Read a worksheet as plain records (one object per logical row, keyed by
+// normalized field name). Un-melts Tableau's "Measure Names / Measure Values"
+// shape — what you get when a sheet carries several measures — back into one
+// record with each measure as its own field.
+async function readRecords(ws){
   const dt=await ws.getSummaryDataAsync({ignoreSelection:true});
-  const map={}; dt.columns.forEach(c=>{ map[norm(c.fieldName)]=c.index; });
-  return {map,rows:dt.data};
+  const cols=dt.columns.map(c=>({name:norm(c.fieldName),index:c.index}));
+  const mn=cols.find(c=>c.name==='measurenames');
+  const mv=cols.find(c=>c.name==='measurevalues');
+  const records=[];
+  if(mn&&mv){
+    const dims=cols.filter(c=>c!==mn&&c!==mv);
+    const groups=new Map();
+    dt.data.forEach(row=>{
+      const key=dims.map(c=>cellStr(row[c.index])).join('');
+      let rec=groups.get(key);
+      if(!rec){ rec={}; dims.forEach(c=>rec[c.name]=row[c.index]); groups.set(key,rec); records.push(rec); }
+      rec[norm(cellStr(row[mn.index]))]=row[mv.index];
+    });
+  }else{
+    dt.data.forEach(row=>{ const rec={}; cols.forEach(c=>rec[c.name]=row[c.index]); records.push(rec); });
+  }
+  return records;
+}
+// Return the cell for the first field name that matches (exact, then contains).
+function field(rec,cands){
+  for(const cnd of cands){ const k=norm(cnd); if(k in rec)return rec[k]; }
+  for(const cnd of cands){ const k=norm(cnd); for(const key in rec){ if(key.includes(k))return rec[key]; } }
+  return undefined;
 }
 function findSheet(dash,cands){
   return dash.worksheets.find(w=>cands.some(c=>norm(w.name)===norm(c)))
@@ -351,38 +382,38 @@ async function loadFromTableau(){
   const ensure=c=>{ if(!out.campuses[c]) out.campuses[c]={awaLeaf:{WC:0,EC:0,Elem:0,HSM:0,MSM:0},weekendsInWindow:0,trend:[],stoplightWeekend:'',services:[]}; return out.campuses[c]; };
 
   // Sheet 1 — AWA by Area
-  const s1=await readSheet(wsAwa);
-  const a_c=colIndex(s1.map,['Campus']), a_area=colIndex(s1.map,['Ministry Area','Area']),
-        a_awa=colIndex(s1.map,['AWA','Average Weekly Attendance']), a_wk=colIndex(s1.map,['Weekends in Window','Weekends']);
-  s1.rows.forEach(r=>{ const c=cellStr(r[a_c]); if(!c)return; const cd=ensure(c);
-    const area=normalizeArea(cellStr(r[a_area])); if(area in cd.awaLeaf) cd.awaLeaf[area]=cellNum(r[a_awa]);
-    if(a_wk>=0) cd.weekendsInWindow=cellNum(r[a_wk]); });
+  (await readRecords(wsAwa)).forEach(rec=>{
+    const c=cellStr(field(rec,['Campus'])); if(!c)return; const cd=ensure(c);
+    const area=normalizeArea(cellStr(field(rec,['Ministry Area','Area'])));
+    if(area in cd.awaLeaf) cd.awaLeaf[area]=cellNum(field(rec,['AWA','Average Weekly Attendance']));
+    const wk=field(rec,['Weekends in Window','Weekends']); if(wk!==undefined) cd.weekendsInWindow=cellNum(wk);
+  });
 
   // Sheet 2 — Weekly Trend
-  const s2=await readSheet(wsTrend);
-  const t_c=colIndex(s2.map,['Campus']), t_wk=colIndex(s2.map,['Weekend','Weekend Date','Date']),
-        t_tot=colIndex(s2.map,['Total Attendance','Attendance','Total']);
   const trend={};
-  s2.rows.forEach(r=>{ const c=cellStr(r[t_c]); if(!c)return; (trend[c]=trend[c]||[]).push({t:cellTime(r[t_wk]),v:cellNum(r[t_tot])}); });
+  (await readRecords(wsTrend)).forEach(rec=>{
+    const c=cellStr(field(rec,['Campus'])); if(!c)return;
+    (trend[c]=trend[c]||[]).push({t:cellTime(field(rec,['Weekend','Weekend Date','Date'])),v:cellNum(field(rec,['Total Attendance','Attendance','Total']))});
+  });
   for(const c in trend){ trend[c].sort((x,y)=>x.t-y.t); ensure(c).trend=trend[c].map(p=>p.v); }
 
   // Sheet 3 — Service Stoplight
-  const s3=await readSheet(wsSvc);
-  const x_c=colIndex(s3.map,['Campus']), x_area=colIndex(s3.map,['Ministry Area','Area']),
-        x_svc=colIndex(s3.map,['Service']), x_dow=colIndex(s3.map,['Day of Week','Day']),
-        x_att=colIndex(s3.map,['Attendance','Att']), x_soft=colIndex(s3.map,['Soft Cap','Soft']),
-        x_firm=colIndex(s3.map,['Firm Cap','Firm']), x_wknd=colIndex(s3.map,['Weekend Date','Weekend','Date']);
   const wkTime={};
-  s3.rows.forEach(r=>{ const c=cellStr(r[x_c]); if(!c)return; const cd=ensure(c);
-    const soft=x_soft>=0?cellNum(r[x_soft]):0; const att=cellNum(r[x_att]);
+  (await readRecords(wsSvc)).forEach(rec=>{
+    const c=cellStr(field(rec,['Campus'])); if(!c)return; const cd=ensure(c);
+    const soft=cellNum(field(rec,['Soft Cap','Soft']));
+    const att=cellNum(field(rec,['Attendance','Att']));
+    const svc=cellStr(field(rec,['Service']));
+    const firm=cellNum(field(rec,['Firm Cap','Firm']));
     const pct=soft>0?+(att/soft*100).toFixed(1):null;
+    // Day of week: prefer the day named in the service, else a Day-of-Week field (name or date).
+    const dow=weekdayFrom(svc)||weekdayFrom(cellStr(field(rec,['Day of Week','Day'])));
     cd.services.push({
-      area:normalizeArea(cellStr(r[x_area])), svc:cellStr(r[x_svc]),
-      dow:x_dow>=0?cellStr(r[x_dow]):'', att:att,
-      soft:soft>0?soft:null, firm:x_firm>=0?(cellNum(r[x_firm])||null):null,
-      pct:pct, light:lightFor(pct)
+      area:normalizeArea(cellStr(field(rec,['Ministry Area','Area']))), svc:svc, dow:dow,
+      att:att, soft:soft>0?soft:null, firm:firm>0?firm:null, pct:pct, light:lightFor(pct)
     });
-    if(x_wknd>=0){ const t=cellTime(r[x_wknd]); if(t>=(wkTime[c]||-1)){ wkTime[c]=t; cd.stoplightWeekend=cellStr(r[x_wknd]); } }
+    const wkCell=field(rec,['Weekend Date','Weekend','Date']);
+    if(wkCell!==undefined){ const t=cellTime(wkCell); if(t>=(wkTime[c]||-1)){ wkTime[c]=t; cd.stoplightWeekend=cellStr(wkCell); } }
   });
 
   if(!Object.keys(out.campuses).length) throw new Error('No rows returned from the worksheets.');
@@ -392,19 +423,15 @@ async function loadFromTableau(){
   [wsAwa,wsTrend,wsSvc].forEach(ws=>{ try{ ws.addEventListener(tableau.TableauEventType.SummaryDataChanged, refresh); }catch(e){} });
 }
 
-function setBadge(text){ const b=document.getElementById('statusBadge'); if(b)b.textContent=text; }
-
 let refreshing=false;
 async function refresh(){ if(refreshing)return; refreshing=true; try{ await loadFromTableau(); initFilters(); }catch(e){} refreshing=false; render(); }
 
 async function boot(){
-  let live=false;
   if(window.tableau && tableau.extensions && tableau.extensions.initializeAsync){
-    try{ await tableau.extensions.initializeAsync(); await loadFromTableau(); live=true; }
-    catch(e){ live=false; console.warn('Pinchpoint: using sample data —', e && e.message); }
+    try{ await tableau.extensions.initializeAsync(); await loadFromTableau(); }
+    catch(e){ console.warn('Pinchpoint: using sample data —', e && e.message); }
   }
   initFilters(); render();
-  setBadge(live?'Live · connected to Tableau':'Sample data · not connected');
 }
 boot();
 </script>
