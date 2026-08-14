@@ -99,8 +99,6 @@
 
   <div class="filters">
     <div class="field"><label for="fCampus">Campus</label><select id="fCampus"></select></div>
-    <div class="field" id="dowField"><label for="fDow">Day of week</label>
-      <select id="fDow"><option value="all">All days</option></select></div>
     <div class="spacer"></div>
     <div class="field"><label>&nbsp;</label>
       <div class="seg" role="tablist">
@@ -280,26 +278,14 @@ function initFilters(){
   if(!keys.includes(state.campus)) state.campus=keys[0];
   keys.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;c.appendChild(o);});
   c.value=state.campus;
-  // Rebuild the day-of-week list from whatever days actually appear in the data.
-  const dows=[]; Object.values(DATA.campuses).forEach(cd=>cd.services.forEach(s=>{ if(s.dow&&!dows.includes(s.dow))dows.push(s.dow); }));
-  if(dows.length){
-    const f=document.getElementById('fDow'); const cur=state.dow;
-    const order=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    f.innerHTML='<option value="all">All days</option>';
-    dows.sort((a,b)=>order.indexOf(a)-order.indexOf(b)).forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;f.appendChild(o);});
-    f.value=[...f.options].some(o=>o.value===cur)?cur:'all'; state.dow=f.value;
-  }
 }
 document.getElementById('fCampus').addEventListener('change',e=>{state.campus=e.target.value;render();});
-document.getElementById('fDow').addEventListener('change',e=>{state.dow=e.target.value;render();});
-// The Day-of-week filter only applies to the Weekend Stoplight view, so hide it on AWA.
-function setDowVisibility(){ const el=document.getElementById('dowField'); if(el) el.style.display = state.view==='wknd' ? '' : 'none'; }
 function setView(v){state.view=v;
   document.getElementById('tabAwa').setAttribute('aria-selected',v==='awa');
   document.getElementById('tabWknd').setAttribute('aria-selected',v==='wknd');
   document.getElementById('viewAwa').classList.toggle('hidden',v!=='awa');
   document.getElementById('viewWknd').classList.toggle('hidden',v!=='wknd');
-  setDowVisibility(); render();}
+  render();}
 document.getElementById('tabAwa').addEventListener('click',()=>setView('awa'));
 document.getElementById('tabWknd').addEventListener('click',()=>setView('wknd'));
 document.getElementById('themeBtn').addEventListener('click',()=>{const r=document.documentElement;r.setAttribute('data-theme',r.getAttribute('data-theme')==='dark'?'light':'dark');render();});
@@ -433,7 +419,7 @@ async function boot(){
     try{ await tableau.extensions.initializeAsync(); await loadFromTableau(); }
     catch(e){ console.warn('Pinchpoint: using sample data —', e && e.message); }
   }
-  initFilters(); setDowVisibility(); render();
+  initFilters(); render();
 }
 boot();
 </script>
