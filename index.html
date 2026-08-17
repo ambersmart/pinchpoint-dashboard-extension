@@ -112,7 +112,7 @@
   <section id="viewAwa">
     <div class="card hero">
       <div><div class="num" id="heroAwa">&mdash;</div>
-        <div class="lbl">Total AWA &middot; trailing 52 weeks &middot; <b id="heroCampus">&mdash;</b> <span id="heroWknds" style="color:var(--muted)"></span></div></div>
+        <div class="lbl">Total AWA &middot; trailing 52 weeks &middot; <b id="heroCampus">&mdash;</b></div></div>
       <div class="spark"><div id="heroSpark"></div>
         <div class="cap"><span>52 weekends ago</span><span>most recent</span></div></div>
     </div>
@@ -252,7 +252,6 @@ function renderAwa(){
   const total=Object.values(leaf).reduce((a,b)=>a+b,0);
   document.getElementById('heroAwa').textContent=fmt(total);
   document.getElementById('heroCampus').textContent=state.campus;
-  document.getElementById('heroWknds').textContent='('+cd.weekendsInWindow+' weekends in window)';
   renderSpark(document.getElementById('heroSpark'),cd.trend,cd.trendLabels,540,60,'var(--blue-450)');
   const list=document.getElementById('awaList'); list.innerHTML='';
   HIER.forEach(node=>{
@@ -278,6 +277,18 @@ function currentWeekends(cd){
     : [{label: cd.stoplightWeekend||'—', services: cd.services||[]}];
   return list.sort((a,b)=>((b.t!=null?b.t:Date.parse(b.label)||0)-(a.t!=null?a.t:Date.parse(a.label)||0)));
 }
+// Order services within an area by weekend day (Thursday first, through Sunday) then by service time.
+const WEEKEND_ORDER=['Thursday','Friday','Saturday','Sunday','Monday','Tuesday','Wednesday'];
+function svcMinutes(name){
+  const m=String(name||'').match(/(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m/i);
+  if(!m)return 1e9;
+  let h=(+m[1])%12; if(/p/i.test(m[3]))h+=12;
+  return h*60+(m[2]?+m[2]:0);
+}
+function svcSortKey(s){ const day=weekdayFrom(s.svc); const dr=day?WEEKEND_ORDER.indexOf(day):-1; return [dr<0?99:dr, svcMinutes(s.svc)]; }
+function sortServices(svcs){
+  return svcs.slice().sort((a,b)=>{ const ka=svcSortKey(a),kb=svcSortKey(b); return ka[0]-kb[0] || ka[1]-kb[1] || String(a.svc||'').localeCompare(String(b.svc||'')); });
+}
 function renderWknd(){
   const cd=DATA.campuses[state.campus];
   const weekends=currentWeekends(cd);
@@ -299,7 +310,7 @@ function renderWknd(){
       <div class="pct">${has?'<span class="caret">&#9654;</span>':''}</div>`;
     list.appendChild(r);
     if(has){ const panel=document.createElement('div'); panel.className='svcs';
-      svcs.slice().sort((a,b)=>(b.pct||0)-(a.pct||0)).forEach(s=>{
+      sortServices(svcs).forEach(s=>{
         const col=colorOf(s.light), pct=s.pct==null?null:s.pct;
         const sr=document.createElement('div'); sr.className='svcrow';
         sr.innerHTML=`<div class="svcname">${s.svc}</div>
